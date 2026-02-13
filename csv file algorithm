@@ -1,0 +1,75 @@
+import csv
+
+def load_csv(filename):
+    with open(filename, 'r') as file:
+        data = list(csv.reader(file))
+    return data
+
+def initialize_sets(num_attributes):
+    S = ['0'] * num_attributes
+    G = [['?'] * num_attributes]
+    return S, G
+
+def is_consistent(hypothesis, example):
+    for i in range(len(hypothesis)):
+        if hypothesis[i] != '?' and hypothesis[i] != example[i]:
+            return False
+    return True
+
+def more_general(h1, h2):
+    more_general_parts = []
+    for x, y in zip(h1, h2):
+        mg = x == '?' or (x != '0' and (x == y))
+        more_general_parts.append(mg)
+    return all(more_general_parts)
+
+def candidate_elimination(data):
+    num_attributes = len(data[0]) - 1
+    S, G = initialize_sets(num_attributes)
+
+    print("Initial S:", S)
+    print("Initial G:", G)
+    print()
+
+    for example in data:
+        attributes = example[:-1]
+        label = example[-1]
+
+        if label == "Yes":  # Positive Example
+            # Remove inconsistent hypotheses from G
+            G = [g for g in G if is_consistent(g, attributes)]
+
+            # Generalize S minimally
+            for i in range(num_attributes):
+                if S[i] == '0':
+                    S[i] = attributes[i]
+                elif S[i] != attributes[i]:
+                    S[i] = '?'
+
+        else:  # Negative Example
+            # Specialize G minimally
+            new_G = []
+            for g in G:
+                if is_consistent(g, attributes):
+                    for i in range(num_attributes):
+                        if g[i] == '?':
+                            new_hypothesis = g.copy()
+                            new_hypothesis[i] = S[i]
+                            if new_hypothesis not in new_G:
+                                new_G.append(new_hypothesis)
+                else:
+                    new_G.append(g)
+            G = new_G
+
+        print("S:", S)
+        print("G:", G)
+        print()
+
+    return S, G
+
+# Run the algorithm
+data = load_csv("training_data.csv")
+final_S, final_G = candidate_elimination(data)
+
+print("Final Specific Hypothesis:", final_S)
+print("Final General Hypotheses:", final_G)
